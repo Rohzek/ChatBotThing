@@ -2,7 +2,7 @@
 {
     class MorseCode
     {
-        public MorseCode(char Character, string Representation) 
+        public MorseCode(char Character, string Representation)
         {
             this.Character = Character;
             this.Representation = Representation;
