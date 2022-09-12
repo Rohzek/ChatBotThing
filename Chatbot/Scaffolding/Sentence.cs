@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace Chatbot
 {
+    /**
+     * Object representation of the Sentence DB objects
+     */
     public partial class Sentence
     {
         public int Id { get; set; }

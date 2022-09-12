@@ -6,6 +6,7 @@ namespace Chatbot.Classes
 {
     class MorseCodes
     {
+        // All of the morse codes that were in the Python script
         public static MorseCode Apostrophe = new MorseCode('\'', ".----.");
         public static MorseCode ParenthesisLeft = new MorseCode('(', "-.--.-");
         public static MorseCode ParenthesisRight = new MorseCode(')', "-.--.-");
@@ -54,6 +55,7 @@ namespace Chatbot.Classes
         public static MorseCode Z = new MorseCode('Z', "--..");
         public static MorseCode Underscore = new MorseCode('_', "..--.-");
 
+        // All of the above objects, but stored in a List
         List<MorseCode> MorseCodesList = new List<MorseCode>
         {
             Apostrophe,

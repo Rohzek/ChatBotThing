@@ -1,13 +1,9 @@
 ﻿using Kujou_Karen_Bot;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Chatbot.Classes
 {
+    // A quick and easy way to load our file and get the settings object or create it if it doesn't exist
     public static class SettingsLoad
     {
         public static string file = "Settings.json", version = "0.0.1";
