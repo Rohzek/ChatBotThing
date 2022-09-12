@@ -93,8 +93,9 @@ namespace Chatbot
             }
 
             int argPos = 0;
-            // If bot was mentioned
-            if (/*msg.HasStringPrefix(settings.Prefix, ref argPos) ||*/ msg.HasMentionPrefix(client.CurrentUser, ref argPos))
+            // Check if bot was mentioned at all, rather than just a prefix.
+            var mentioned = msg.MentionedUsers.Where(x => x.Id.Equals(client.CurrentUser.Id)).FirstOrDefault();
+            if (mentioned != null /*msg.HasStringPrefix(settings.Prefix, ref argPos) || msg.HasMentionPrefix(client.CurrentUser, ref argPos)*/)
             {
                 // Below is the code to check for the automated command service
                 /*
