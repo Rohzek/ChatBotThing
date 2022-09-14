@@ -1,6 +1,9 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Chatbot.Classes
@@ -188,26 +191,9 @@ namespace Chatbot.Classes
                 // Word association bits here Lines: 383 - 410
 
                 // H(uman) = user input? B(ot) = Bot's words?
-
-                // 384: Split the bot's last text string into individual words and store into array
-                // 385: Total length of all words in the array added together?
-                // 386: Map all of the words individually to the last user input sentence?
-                // 387: For each word in the array
-                // 389: length of each word divided by length of total words = each word's weight?
-                // -----
-                // 394: Split user's last text string into individual words and store into an array
-                // 395: Total length of all words in the array added together?
-                // 396: length of each word divided by total length of all words = word weight?
-                // -----
-                // 400: Pull a sentence that has a similar weight structure out of memory?
-                // -----
-                // 405: Otherwise pull a random stored sentence?
-                // -----
-                // 408: Update used again count on whichever sentence was selected
-
                 else
                 {
-                    // This check should end up being per user eventually
+                    // This check should probably end up being per user eventually
                     if (LastSaidSentence.Length == 0)
                     {
                         // If nothing previously has been said, repeat the last phrase given
@@ -228,18 +214,59 @@ namespace Chatbot.Classes
                         {
                             Words_Length += word.Length;
                         }
+                        // 386: Map all of the words individually to the last user input sentence?
+                        // User's sentence => Bot's last words?
+                        var Sentence = Program.DB.Sentences.Where(w => w.Sentence1.ToLower().Equals(message.ToLower())).FirstOrDefault();
+                        var CheckSentence = Program.DB.Sentences.OrderByDescending(s => s.Id).FirstOrDefault();
+                        var Num = 0;
+
+                        if (CheckSentence != null) 
+                        {
+                            Num = CheckSentence.Id;
+                        }
+
+                        if (Sentence == null)
+                        {
+                            Sentence = new Sentence();
+                            
+                            Sentence.Id = Num + 1; // Adds one to the current used ID
+                            Sentence.Sentence1 = message;
+                            Sentence.Used = 0;
+                            Program.DB.Add(Sentence);
+                        }
 
                         // 389: length of each word divided by length of total words = each word's weight?
+                        var CheckWord = Program.DB.Words.OrderByDescending(w => w.Id).FirstOrDefault();
+                        Num = 0;
+
+                        if (CheckWord != null) 
+                        {
+                            Num = CheckWord.Id;
+                        }
+
                         foreach (string Word in Words)
                         {
                             Weight = (Double)Math.Sqrt((Double)Word.Length / (Double)Words_Length);
-                            Console.WriteLine($"Bot check first; Word is: {Word}. The calculation is {Word.Length}/{Words_Length} to get {Weight}");
+                            var DBW = Program.DB.Words.Where(w => w.Word1.ToLower().Equals(Word.ToLower())).FirstOrDefault();
+
+                            if (DBW == null) 
+                            {
+                                DBW = new Word();
+                                DBW.Id = Num += 1; // Adds one to the current used ID
+                                DBW.Word1 = Word;
+
+                                var Assoc = new Association();
+                                Assoc.SentenceId = Sentence.Id;
+                                Assoc.WordId = DBW.Id;
+                                Assoc.Weight = Weight;
+
+                                Program.DB.Words.Add(DBW);
+                                Program.DB.Associations.Add(Assoc);
+                            }
+                            //Console.WriteLine($"Bot check first; Word is: {Word}. The calculation is {Word.Length}/{Words_Length} to get {Weight}");
                         }
 
-
-                        // -------------------------------- \\
-
-
+                        // Do the same stuff with users below:
                         // 394: Split user's last text string into individual words and store into an array
                         Words = Regex.Matches(message, WordPattern).Cast<Match>().Select(m => m.Value).ToArray();
 
@@ -253,16 +280,34 @@ namespace Chatbot.Classes
                         foreach (string Word in Words)
                         {
                             Weight = (Double)Math.Sqrt((Double)Word.Length / (Double)Words_Length);
-                            Console.WriteLine($"User check second; Word is: {Word}. The calculation is {Word.Length}/{Words_Length} to get {Weight}");
+                            //Console.WriteLine($"User check second; Word is: {Word}. The calculation is {Word.Length}/{Words_Length} to get {Weight}");
                         }
 
                         // 400: Pull a sentence that has a similar weight structure out of memory?
-                        // 405: Otherwise pull a random stored sentence?
-                        // 408: Update used again count on whichever sentence was selected
 
-                        Response = $"I should be saying something witty in response to \"{message}\"";
+                        /**
+                         * Not sure about this one, but this is what we need to work on next
+                         * 
+                         * 
+                         */
+
+                        // 405: Otherwise pull a random stored sentence that's the least used?
+                        Sentence = Program.DB.Sentences.Where(s => s.Used == Program.DB.Sentences.Min(x => x.Used)).FirstOrDefault();
+
+                        // 408: Update used again count on whichever sentence was selected
+                        if (Sentence != null)
+                        {
+                            Sentence.Used = Sentence.Used += 1;
+                            Response = Sentence.Sentence1;
+                        }
+                        else 
+                        {
+                            Response = $"{message}";
+                        }
                     }
                 }
+                LastSaidSentence = Response;
+                await Program.DB.SaveChangesAsync();
 
                 // Actually respond
                 await msg.ReplyAsync($"{Response}");
@@ -270,6 +315,7 @@ namespace Chatbot.Classes
             catch (Exception ex) 
             {
                 Console.WriteLine($"Error caught in conversation: {ex.Message}");
+                Console.WriteLine($"Error trace: {ex.StackTrace}");
                 Console.WriteLine($"Message text says: {message}");
 
                 await msg.ReplyAsync($"Sorry, I spaced out for a second. Can you repeat that please?");

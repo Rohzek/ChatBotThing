@@ -9,14 +9,9 @@ namespace Chatbot
 {
     public partial class ChatbotContext : DbContext
     {
-        public ChatbotContext()
-        {
-        }
+        public ChatbotContext() { }
 
-        public ChatbotContext(DbContextOptions<ChatbotContext> options)
-            : base(options)
-        {
-        }
+        public ChatbotContext(DbContextOptions<ChatbotContext> options) : base(options) { }
 
         public virtual DbSet<Association> Associations { get; set; } = null!;
         public virtual DbSet<Sentence> Sentences { get; set; } = null!;

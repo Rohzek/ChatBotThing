@@ -18,6 +18,9 @@ namespace Chatbot
         public static CommandService commands; // Probably not going to be used
         IServiceProvider services;
 
+        // Database connection object
+        public static ChatbotContext DB;
+
         // Starts main as an asycable task
         public static void Main(string[] args) => new Program().MainAsync().GetAwaiter().GetResult();
 
@@ -46,6 +49,9 @@ namespace Chatbot
             await client.LoginAsync(TokenType.Bot, settings.DiscordToken);
             await client.StartAsync();
             await client.SetGameAsync(settings.DiscordGame); // Sets the game to be played. Can be any string
+
+            // Setup the DB
+            DB = new ChatbotContext();
 
             await Task.Delay(-1); // This will keep it alive forever
         }
