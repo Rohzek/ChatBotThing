@@ -1,14 +1,14 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Text.RegularExpressions;
 
 namespace Chatbot.Classes
 {
     public static class Conversation
     {
-        static Regex regex;
-        static Match match;
-        static string MentionPattern = "\\s+<@\\d+>\\s+";
+        static string MentionPattern = "[\\s+]?<@\\d+>[\\s+]?", WordPattern = "[\\w'-]+";
+        static string LastSaidSentence = "";
 
         static Random random = new Random();
 
@@ -17,9 +17,7 @@ namespace Chatbot.Classes
             // Read input and respond accordingly
             var sender = msg.Author;
             var channel = msg.Channel;
-            var message = msg.Content;
-
-            Console.WriteLine($"Conttent is 'blank'? {message}");
+            var message = msg.Content.ToString();
 
             var Responses = new List<string>(); // Allocates memory for our responses list
             var Response = ""; // Allocates memory for our chosen response
@@ -32,17 +30,9 @@ namespace Chatbot.Classes
              * The regex pattern includes spaces before and after the mention, to handle the mention being the first
              * and the last thing in the message, just in case, even though the main code only checks for it at begining.
              */
-            regex = new Regex(@MentionPattern);
-            match = regex.Match(message);
-
-            if (match.Success)
-            {
-                message = message.Remove(message.IndexOf(match.Value.First(), message.IndexOf(match.Value.First()) + match.Value.Length));
-                Console.WriteLine($"We removed {match.Value} to get {message}");
-            }
+            message = Regex.Replace(message, MentionPattern, "");
 
             // At this point, message is just the text, without the userID
-
             try
             {
                 // Determine the proper response
@@ -118,7 +108,7 @@ namespace Chatbot.Classes
                     int Repeat = 0;
                     var JokeRepeat = new List<string> { "Let me think of another joke for you...", "I have another joke to tell...", "Here's another one for you...", "Fancy another joke then... ", "My other joke wasn't funny enough? Here's another...", "Here's another joke you'll like..." };
                     Responses = new List<string> { "This random guy threw a block of cheese at me the other day. How dairy!", "I bought a broken hoover the other day. It just sits there gathering dust.", "Did you hear the one about the letter that got posted without a stamp? You wouldn't get it.", "Windmills, I'm a big fan.", "Do they make 'Do Not Touch' signs in Braille?" };
-                    Response = $"{(Repeat > 0? JokeRepeat[random.Next(JokeRepeat.Count)] : "")}{Responses[random.Next(Responses.Count)]}";
+                    Response = $"{(Repeat > 0 ? JokeRepeat[random.Next(JokeRepeat.Count)] : "")}{Responses[random.Next(Responses.Count)]}";
                     // Count should go up per user too
                 }
 
@@ -214,6 +204,65 @@ namespace Chatbot.Classes
                 // 405: Otherwise pull a random stored sentence?
                 // -----
                 // 408: Update used again count on whichever sentence was selected
+
+                else
+                {
+                    // This check should end up being per user eventually
+                    if (LastSaidSentence.Length == 0)
+                    {
+                        // If nothing previously has been said, repeat the last phrase given
+                        LastSaidSentence = message;
+                        Response = $"{message}";
+                    }
+                    else // Figure out what to say back
+                    {
+                        int Words_Length = 0;
+                        Double Weight = 0;
+                        Array Words;
+
+                        // 384: Split the bot's last text string into individual words and store into array
+                        Words = Regex.Matches(LastSaidSentence, WordPattern).Cast<Match>().Select(m => m.Value).ToArray();
+
+                        // 385: Total length of all words in the array added together?
+                        foreach (string word in Words)
+                        {
+                            Words_Length += word.Length;
+                        }
+
+                        // 389: length of each word divided by length of total words = each word's weight?
+                        foreach (string Word in Words)
+                        {
+                            Weight = (Double)Math.Sqrt((Double)Word.Length / (Double)Words_Length);
+                            Console.WriteLine($"Bot check first; Word is: {Word}. The calculation is {Word.Length}/{Words_Length} to get {Weight}");
+                        }
+
+
+                        // -------------------------------- \\
+
+
+                        // 394: Split user's last text string into individual words and store into an array
+                        Words = Regex.Matches(message, WordPattern).Cast<Match>().Select(m => m.Value).ToArray();
+
+                        // 395: Total length of all words in the array added together?
+                        foreach (string word in Words)
+                        {
+                            Words_Length += word.Length;
+                        }
+
+                        // 396: length of each word divided by total length of all words = word weight?
+                        foreach (string Word in Words)
+                        {
+                            Weight = (Double)Math.Sqrt((Double)Word.Length / (Double)Words_Length);
+                            Console.WriteLine($"User check second; Word is: {Word}. The calculation is {Word.Length}/{Words_Length} to get {Weight}");
+                        }
+
+                        // 400: Pull a sentence that has a similar weight structure out of memory?
+                        // 405: Otherwise pull a random stored sentence?
+                        // 408: Update used again count on whichever sentence was selected
+
+                        Response = $"I should be saying something witty in response to \"{message}\"";
+                    }
+                }
 
                 // Actually respond
                 await msg.ReplyAsync($"{Response}");
